@@ -3,7 +3,7 @@ set -e
 
 # Configuration
 JB_RAW_BASE="https://raw.githubusercontent.com/JetBrains/JetBrainsMono/master/fonts/variable"
-FONTS=("JetBrainsMono[wght].ttf" "JetBrainsMonoItalic[wght].ttf")
+FONTS=("JetBrainsMono[wght].ttf" "JetBrainsMono-Italic[wght].ttf")
 WORK_DIR="build-work"
 OUTPUT_DIR="patched-fonts"
 
@@ -15,7 +15,7 @@ mkdir -p "$WORK_DIR" "$OUTPUT_DIR"
 echo "Downloading JetBrains Mono Variable fonts..."
 for font in "${FONTS[@]}"; do
     echo "Downloading $font..."
-    curl -fLo "$WORK_DIR/$font" "$JB_RAW_BASE/$font"
+    curl -fLo -g "$WORK_DIR/$font" "$JB_RAW_BASE/$font"
 done
 
 # 2. Prepare Nerd Fonts Patcher
