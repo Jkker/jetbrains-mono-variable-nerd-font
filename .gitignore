@@ -1,0 +1,8 @@
+# Ignore patched fonts during development if needed, though we want to commit them in CI
+# patched-fonts/
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.env
