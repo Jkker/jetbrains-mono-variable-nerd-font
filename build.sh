@@ -29,22 +29,14 @@ popd > /dev/null
 
 # 3. Convert variable fonts to static instances for patching reliability
 echo "Converting variable fonts to static instances for patching..."
-python3 - <<'PY'
+WORK_DIR="$WORK_DIR" python3 - <<'PY'
+import os
 from pathlib import Path
-import subprocess
-import sys
+from fontTools.ttLib import TTFont
+from fontTools.varLib.instancer import instantiateVariableFont
 
-try:
-    from fontTools.ttLib import TTFont
-    from fontTools.varLib.instancer import instantiateVariableFont
-except ImportError:
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "--user", "fonttools"])
-    import site
-    sys.path.append(site.getusersitepackages())
-    from fontTools.ttLib import TTFont
-    from fontTools.varLib.instancer import instantiateVariableFont
-
-work_dir = Path("build-work")
+DEFAULT_WEIGHT = 400
+work_dir = Path(os.environ["WORK_DIR"])
 mapping = [
     ("JetBrainsMono[wght].ttf", "JetBrainsMono-Regular.ttf"),
     ("JetBrainsMono-Italic[wght].ttf", "JetBrainsMono-Italic.ttf"),
@@ -53,20 +45,31 @@ mapping = [
 for src, dst in mapping:
     src_path = work_dir / src
     dst_path = work_dir / dst
+    instantiated = None
     font = TTFont(src_path)
-    default_wght = 400
-    if "fvar" in font:
-        default_wght = font["fvar"].axes[0].defaultValue
-    instantiated = instantiateVariableFont(font, {"wght": default_wght})
-    instantiated.save(dst_path)
+    try:
+        default_wght = DEFAULT_WEIGHT
+        if "fvar" in font:
+            axes_defaults = {axis.axisTag: axis.defaultValue for axis in font["fvar"].axes}
+            default_wght = axes_defaults.get("wght", default_wght)
+        instantiated = instantiateVariableFont(font, {"wght": default_wght})
+    finally:
+        font.close()
+
+    try:
+        if instantiated:
+            instantiated.save(dst_path)
+    finally:
+        if instantiated:
+            instantiated.close()
 PY
 
-# 3. Patch Fonts
+# 4. Patch Fonts
 # Ensure fontforge is installed in the environment
 echo "Patching fonts..."
 for font in "${PATCH_FONTS[@]}"; do
     echo "Processing $font..."
-    # --complete: Add all glyphs
+    # -c / --complete: Add all glyphs
     # --careful: Be careful not to overwrite existing glyphs
     fontforge -script "$WORK_DIR/nerd-fonts/font-patcher" \
         -c \
